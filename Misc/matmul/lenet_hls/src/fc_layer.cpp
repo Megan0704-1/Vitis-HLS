@@ -9,7 +9,7 @@ data_t relu(data_t x) {
     return x > 0 ? x : data_t(0);
 }
 
-template<int IN_DIM, int OUT_DIM>
+template<int OUT_DIM, int IN_DIM>
 void fc_layer(
         hls::stream<data_t>& in_stream,
         hls::stream<data_t>& out_stream,
@@ -21,17 +21,16 @@ void fc_layer(
     #pragma HLS ARRAY_PARTITION variable=weights cyclic factor=8 dim=2
     #pragma HLS ARRAY_PARTITION variable=bias complete dim=1
 
-    for(int i=0; i<IN_DIM; ++i) {
-        #pragma HLS PIPELINE II=1
+    for(int i=0; i<OUT_DIM; ++i) {
         data_t val = in_stream.read();
-        for(int j=0; j<OUT_DIM; ++j) {
+        for(int j=0; j<IN_DIM; ++j) {
             #pragma HLS UNROLL factor=4
-            bias[j] += weight[j][i] * val;
+            bias[i] += weight[i][j] * val;
         }
     }
 
-    for(int j=0; j<OUT_DIM; ++j) {
-        data_t result = use_relu ? relu(bias[j]) : bias[j];
+    for(int i=0; i<OUT_DIM; ++i) {
+        data_t result = use_relu ? relu(bias[i]) : bias[i];
         out_stream.write(result);
     }
 }
